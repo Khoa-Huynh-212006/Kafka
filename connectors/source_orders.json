@@ -1,0 +1,22 @@
+{
+  "name": "source_orders_connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    
+    "database.hostname": "mysql_source",
+    "database.port": "3306",
+    "database.user": "user_de",
+    "database.password": "password_de",
+    "database.server.id": "184054",
+    
+    "topic.prefix": "vng_brazil",
+    "database.include.list": "olist_db",
+    "table.include.list": "olist_db.olist_orders",
+    
+    "schema.history.internal.kafka.bootstrap.servers": "broker:29092",
+    "schema.history.internal.kafka.topic": "schema-changes.olist",
+    
+    "database.allowPublicKeyRetrieval": "true" 
+  }
+}

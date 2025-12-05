@@ -1,0 +1,25 @@
+{
+  "name": "sink_analytics_connector",
+  "config": {
+    "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+    "tasks.max": "1",
+    
+    "topics": "vng_brazil.olist_db.olist_orders",
+    
+    "connection.url": "jdbc:mysql://mysql_analytics:3306/analytics_db?allowPublicKeyRetrieval=true&useSSL=false",
+    "connection.user": "analytics_user",
+    "connection.password": "analytics_password",
+    
+    "auto.create": "true",
+    "auto.evolve": "true",
+    "insert.mode": "upsert",
+    "pk.mode": "record_value",
+    "pk.fields": "order_id",
+    
+    "table.name.format": "olist_orders_analytics",
+    
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false"
+  }
+}
