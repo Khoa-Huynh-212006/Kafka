@@ -1,0 +1,4 @@
+PowerShell
+
+$content = Get-Content -Raw -Path ".\connectors\source_orders.json"
+Invoke-RestMethod -Uri "http://localhost:8083/connectors" -Method POST -ContentType "application/json" -Body $content
