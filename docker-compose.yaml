@@ -1,6 +1,5 @@
 version: '3'
 services:
-  # 1. Zookeeper (Thằng quản lý)
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
@@ -8,7 +7,6 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
-  # 2. Kafka Broker (Thằng xử lý chính)
   broker:
     image: confluentinc/cp-kafka:7.5.0
     container_name: broker
@@ -19,27 +17,25 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      # Cấu hình nghe (Listener) - Phần hack não nhất của Kafka Docker
+    
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
-  # 3. Kafka UI (Giao diện web xịn xò)
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
     depends_on:
       - broker
     ports:
-      - "8080:8080" # Lưu ý: Nếu trùng port Airflow thì đổi thành 8081:8080 nhé
+      - "8080:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
-  # 4. SOURCE DB: Nơi chứa dữ liệu gốc (Olist)
   mysql_source:
     image: mysql:8.0
     container_name: mysql_source
@@ -52,21 +48,19 @@ services:
       MYSQL_DATABASE: olist_db
       MYSQL_USER: user_normal
       MYSQL_PASSWORD: password_normal
-    # QUAN TRỌNG: Cấu hình bắt buộc để bật chế độ CDC (Binlog)
     command: 
       - --default-authentication-plugin=mysql_native_password 
       - --server-id=1 
       - --log-bin=mysql-bin 
       - --binlog-format=row
     volumes:
-      - ./mysql_init:/docker-entrypoint-initdb.d # <--- Nạp file init.sql ở đây
+      - ./mysql_init:/docker-entrypoint-initdb.d
 
-  # 5. TARGET DB: Nơi chứa dữ liệu Real-time Analytics
   mysql_analytics:
     image: mysql:8.0
     container_name: mysql_analytics
     ports:
-      - "3307:3306" # Map ra cổng 3307 để không đụng cổng 3306 của Source
+      - "3307:3306" 
     environment:
       MYSQL_ROOT_PASSWORD: root_password
       MYSQL_DATABASE: analytics_db
@@ -76,20 +70,19 @@ services:
       - ./analytics_init:/docker-entrypoint-initdb.d
 
   connect:
-    build: .   # <--- (1) Mối nối với Dockerfile
+    build: .   
     hostname: connect
     container_name: connect
     depends_on:
       - broker
       - mysql_source
     ports:
-      - "8083:8083" # <--- (2) Cổng API quản lý
+      - "8083:8083"
     environment:
-      CONNECT_BOOTSTRAP_SERVERS: 'broker:29092' # <--- (3) Kết nối nội bộ
+      CONNECT_BOOTSTRAP_SERVERS: 'broker:29092'
       CONNECT_REST_ADVERTISED_HOST_NAME: connect
-      CONNECT_GROUP_ID: compose-connect-group   # <--- (4) Clustering
+      CONNECT_GROUP_ID: compose-connect-group  
       
-      # (5) Bộ nhớ trong của Kafka Connect
       CONNECT_CONFIG_STORAGE_TOPIC: docker-connect-configs
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_OFFSET_FLUSH_INTERVAL_MS: 10000
@@ -98,7 +91,7 @@ services:
       CONNECT_STATUS_STORAGE_TOPIC: docker-connect-status
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       
-      # (6) Converter & Plugin Path
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+
       CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components"
